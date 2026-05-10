@@ -40,19 +40,20 @@ Suivez ces étapes pour lancer le projet localement :
 - **Maven**
 
 ### 1. Configuration de la Base de Données
-- Créez une base de données MySQL nommée `pfe_db`.
-- Mettez à jour le fichier `backend/src/main/resources/application.properties` avec vos identifiants MySQL si nécessaire.
+- L'application est configurée pour créer la base de données (`pfe_db`) et les tables **automatiquement** lors du premier lancement.
+- Assurez-vous simplement que votre serveur MySQL est lancé.
+- Si vous avez un mot de passe pour votre utilisateur `root`, mettez-le à jour dans : `backend/src/main/resources/application.properties`.
 
-#### Option A : Démarrage à vide (Schéma automatique)
-L'application est configurée pour créer automatiquement les tables lors du premier lancement grâce à Hibernate (`ddl-auto=update`).
+---
 
-#### Option B : Importer les données de test (Recommandé)
-Pour avoir accès aux comptes de test (étudiants, encadrants) et aux projets déjà créés :
-1. Localisez le fichier `database.sql` à la racine du projet.
-2. Importez-le dans votre base `pfe_db` via votre outil favori (phpMyAdmin, MySQL Workbench ou en ligne de commande) :
-   ```bash
-   mysql -u root -p pfe_db < database.sql
-   ```
+### 🔑 Identifiants de Test
+Une fois l'application lancée, vous pouvez utiliser ces comptes pour tester les différents rôles :
+
+| Rôle | Email | Mot de passe |
+| :--- | :--- | :--- |
+| **Administrateur** | `admin@pfe.com` | `Password@123` |
+| **Encadrant** | `prof.ahmed@pfe.com` | `Password@123` |
+| **Étudiant** | `student1@pfe.com` | `Password@123` |
 
 ---
 
