@@ -40,8 +40,21 @@ Suivez ces étapes pour lancer le projet localement :
 - **Maven**
 
 ### 1. Configuration de la Base de Données
-- Créez une base de données MySQL nommée `pfe_management` (ou le nom spécifié dans votre config).
-- Mettez à jour le fichier `backend/src/main/resources/application.properties` avec vos identifiants MySQL.
+- Créez une base de données MySQL nommée `pfe_db`.
+- Mettez à jour le fichier `backend/src/main/resources/application.properties` avec vos identifiants MySQL si nécessaire.
+
+#### Option A : Démarrage à vide (Schéma automatique)
+L'application est configurée pour créer automatiquement les tables lors du premier lancement grâce à Hibernate (`ddl-auto=update`).
+
+#### Option B : Importer les données de test (Recommandé)
+Pour avoir accès aux comptes de test (étudiants, encadrants) et aux projets déjà créés :
+1. Localisez le fichier `database.sql` à la racine du projet.
+2. Importez-le dans votre base `pfe_db` via votre outil favori (phpMyAdmin, MySQL Workbench ou en ligne de commande) :
+   ```bash
+   mysql -u root -p pfe_db < database.sql
+   ```
+
+---
 
 ### 2. Lancement du Backend (Spring Boot)
 ```bash
