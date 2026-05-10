@@ -54,6 +54,7 @@ Une fois l'application lancée, vous pouvez utiliser ces comptes pour tester les
 | **Administrateur** | `admin@pfe.com` | `Password@123` |
 | **Encadrant** | `prof.ahmed@pfe.com` | `Password@123` |
 | **Étudiant** | `student1@pfe.com` | `Password@123` |
+| **Entreprise** | `contact@techcorp.com` | `Password@123` |
 
 ---
 
