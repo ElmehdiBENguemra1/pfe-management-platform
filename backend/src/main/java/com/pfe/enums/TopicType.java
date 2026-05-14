@@ -8,7 +8,11 @@ public enum TopicType {
 
     @JsonCreator
     public static TopicType fromString(String value) {
-        if (value == null) return null;
-        return TopicType.valueOf(value.toUpperCase());
+        if (value == null || value.trim().isEmpty()) return null;
+        try {
+            return TopicType.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 }

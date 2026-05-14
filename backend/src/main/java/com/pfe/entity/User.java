@@ -50,6 +50,8 @@ public class User implements UserDetails {
     private UserStatus status = UserStatus.ACTIVE;
 
     private String avatarUrl;
+    private String githubUrl;
+    private String linkedinUrl;
 
     private LocalDateTime lastLoginAt;
 

@@ -34,6 +34,4 @@ public class StudentProfile {
     private String skills; // Stored as comma-separated tags or JSON
 
     private String cvUrl;
-    private String githubUrl;
-    private String linkedinUrl;
 }

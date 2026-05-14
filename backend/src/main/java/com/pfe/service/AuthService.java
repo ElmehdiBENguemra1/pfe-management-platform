@@ -138,7 +138,9 @@ public class AuthService {
                 .status(user.getStatus() != null ? user.getStatus().name() : null)
                 .enabled(user.isEnabled())
                 .createdAt(user.getCreatedAt())
-                .lastLoginAt(user.getLastLoginAt());
+                .lastLoginAt(user.getLastLoginAt())
+                .githubUrl(user.getGithubUrl())
+                .linkedinUrl(user.getLinkedinUrl());
 
         if (user.getRole() == Role.STUDENT && user.getStudentProfile() != null) {
             builder.studentId(user.getStudentProfile().getStudentId())
@@ -146,9 +148,7 @@ public class AuthService {
                     .level(user.getStudentProfile().getLevel())
                     .bio(user.getStudentProfile().getBio())
                     .skills(user.getStudentProfile().getSkills())
-                    .cvUrl(user.getStudentProfile().getCvUrl())
-                    .githubUrl(user.getStudentProfile().getGithubUrl())
-                    .linkedinUrl(user.getStudentProfile().getLinkedinUrl());
+                    .cvUrl(user.getStudentProfile().getCvUrl());
         } else if (user.getRole() == Role.SUPERVISOR && user.getSupervisorProfile() != null) {
             builder.department(user.getSupervisorProfile().getDepartment())
                     .specialization(user.getSupervisorProfile().getSpecialization());
@@ -163,10 +163,15 @@ public class AuthService {
     }
 
     @Transactional
-    public UserResponse updateProfile(User user, com.pfe.dto.request.ProfileUpdateRequest request) {
+    public UserResponse updateProfile(User principal, com.pfe.dto.request.ProfileUpdateRequest request) {
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new com.pfe.exception.ResourceNotFoundException("User not found"));
+
         if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
         if (request.getLastName() != null) user.setLastName(request.getLastName());
         if (request.getPhone() != null) user.setPhone(request.getPhone());
+        if (request.getGithubUrl() != null) user.setGithubUrl(request.getGithubUrl());
+        if (request.getLinkedinUrl() != null) user.setLinkedinUrl(request.getLinkedinUrl());
 
         if (user.getRole() == Role.STUDENT && user.getStudentProfile() != null) {
             StudentProfile profile = user.getStudentProfile();
@@ -175,8 +180,6 @@ public class AuthService {
             if (request.getLevel() != null) profile.setLevel(request.getLevel());
             if (request.getBio() != null) profile.setBio(request.getBio());
             if (request.getSkills() != null) profile.setSkills(request.getSkills());
-            if (request.getGithubUrl() != null) profile.setGithubUrl(request.getGithubUrl());
-            if (request.getLinkedinUrl() != null) profile.setLinkedinUrl(request.getLinkedinUrl());
         } else if (user.getRole() == Role.SUPERVISOR && user.getSupervisorProfile() != null) {
             SupervisorProfile profile = user.getSupervisorProfile();
             if (request.getDepartment() != null) profile.setDepartment(request.getDepartment());
@@ -189,7 +192,7 @@ public class AuthService {
             if (request.getWebsite() != null) company.setWebsite(request.getWebsite());
         }
 
-        userRepository.save(user);
+        user = userRepository.save(user);
         return getCurrentUser(user);
     }
 
@@ -201,6 +204,7 @@ public class AuthService {
         }
     }
 
+    @Transactional
     public void requestPasswordReset(String identifier) {
         // Here we simulate searching by email or phone. Since we added phone, we'll check both if needed.
         // For simplicity, we check email first.

@@ -13,7 +13,11 @@ public enum Level {
 
     @JsonCreator
     public static Level fromString(String value) {
-        if (value == null) return null;
-        return Level.valueOf(value.toUpperCase());
+        if (value == null || value.trim().isEmpty()) return null;
+        try {
+            return Level.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 }

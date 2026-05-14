@@ -2,11 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Calendar, CheckCircle, Clock, FileText, Send, 
-  Upload, User, MessageSquare, ChevronRight, AlertCircle, 
+  CheckCircle, FileText, Send, 
+  User, MessageSquare, AlertCircle, 
   Download, Plus, Edit3, Trash2, Check, X, Award
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import API from '../api/axios';
 import toast from 'react-hot-toast';
 import SockJS from 'sockjs-client';
@@ -20,6 +19,8 @@ export default function ProjectWorkspaceSupervisor() {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
+  const [editingMilestone, setEditingMilestone] = useState(null);
+  const [milestoneForm, setMilestoneForm] = useState({ title: '', description: '', dueDate: '' });
   const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [revisionComment, setRevisionComment] = useState('');
@@ -180,6 +181,49 @@ export default function ProjectWorkspaceSupervisor() {
     }
   };
 
+  const handleOpenMilestoneModal = (m = null) => {
+    if (m) {
+      setEditingMilestone(m);
+      setMilestoneForm({
+        title: m.title,
+        description: m.description || '',
+        dueDate: m.dueDate ? m.dueDate.substring(0, 10) : ''
+      });
+    } else {
+      setEditingMilestone(null);
+      setMilestoneForm({ title: '', description: '', dueDate: '' });
+    }
+    setIsMilestoneModalOpen(true);
+  };
+
+  const handleSaveMilestone = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingMilestone) {
+        await API.put(`/milestones/${editingMilestone.id}`, milestoneForm);
+        toast.success('Jalon mis à jour');
+      } else {
+        await API.post(`/projects/${id}/milestones`, milestoneForm);
+        toast.success('Jalon créé');
+      }
+      setIsMilestoneModalOpen(false);
+      fetchProject();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur lors de la sauvegarde');
+    }
+  };
+
+  const handleDeleteMilestone = async (milestoneId) => {
+    if (!window.confirm('Voulez-vous vraiment supprimer ce jalon ?')) return;
+    try {
+      await API.delete(`/milestones/${milestoneId}`);
+      toast.success('Jalon supprimé');
+      fetchProject();
+    } catch {
+      toast.error('Erreur lors de la suppression');
+    }
+  };
+
   if (loading || !project) return <div className="loading-state">Chargement du workspace...</div>;
 
   return (
@@ -196,37 +240,58 @@ export default function ProjectWorkspaceSupervisor() {
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ID: #{project.id}</span>
               </div>
               <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px' }}>{project.topicTitle}</h1>
-              <div style={{ display: 'flex', gap: '16px', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><User size={14}/> Étudiant: <strong>{project.student?.firstName} {project.student?.lastName}</strong></span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle size={14} color="var(--accent-blue)"/> Progression: <strong>{project.progress}%</strong></span>
               </div>
             </div>
-            <button onClick={() => setIsEvaluationModalOpen(true)} className="btn btn-primary" disabled={project.status === 'COMPLETED'}>
-              <Award size={18} /> Évaluation finale
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-blue)', lineHeight: 1 }}>{project.progress}%</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '4px', fontWeight: 600 }}>Progression</div>
+              </div>
+              <button onClick={() => setIsEvaluationModalOpen(true)} className="btn btn-primary" disabled={project.status === 'COMPLETED'}>
+                <Award size={18} /> Évaluation
+              </button>
+            </div>
+          </div>
+          <div style={{ height: '8px', background: 'var(--bg-secondary)', borderRadius: '4px', overflow: 'hidden', marginTop: '16px' }}>
+            <div 
+              style={{ height: '100%', width: `${project.progress}%`, background: 'linear-gradient(90deg, var(--accent-blue), #60a5fa)', borderRadius: '4px', transition: 'width 1s ease-out' }}
+            ></div>
           </div>
         </div>
-
         {/* Milestones Management */}
         <div className="card" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
              <h2 style={{ fontSize: '1.125rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <CheckCircle size={20} color="var(--accent-blue)" /> Jalons & Échéances
              </h2>
-             <button onClick={() => toast.success('Milestone creation next step')} className="btn btn-sm btn-ghost"><Plus size={16} /> Ajouter un jalon</button>
+             <button onClick={() => handleOpenMilestoneModal()} className="btn btn-sm btn-ghost"><Plus size={16} /> Ajouter un jalon</button>
           </div>
-          <div className="timeline">
+          <div className="timeline" style={{ position: 'relative', paddingLeft: '20px', borderLeft: '2px solid var(--border)', marginLeft: '10px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {project.milestones?.length === 0 && <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>Aucun jalon défini.</p>}
             {project.milestones?.map((m) => (
-              <div key={m.id} className="timeline-item">
-                <div className={`timeline-dot ${m.status === 'COMPLETED' ? 'completed' : ''}`}></div>
-                <div className="timeline-content card" style={{ padding: '16px', background: 'var(--bg-secondary)' }}>
+              <div key={m.id} style={{ position: 'relative' }}>
+                <div style={{ 
+                  position: 'absolute', left: '-31px', top: '0', width: '20px', height: '20px', borderRadius: '50%', 
+                  background: m.status === 'COMPLETED' ? 'var(--accent-green)' : 'white',
+                  border: `4px solid ${m.status === 'COMPLETED' ? 'var(--accent-green-soft)' : 'var(--border)'}`,
+                  zIndex: 2
+                }}></div>
+                <div className="card" style={{ padding: '16px', background: m.status === 'COMPLETED' ? 'var(--bg-primary)' : 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <h4 style={{ fontWeight: 600 }}>{m.title}</h4>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                       <button className="btn btn-sm btn-ghost"><Edit3 size={14}/></button>
-                       <button className="btn btn-sm btn-ghost"><Trash2 size={14}/></button>
+                    <h4 style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{m.title}</h4>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                       <button onClick={() => handleOpenMilestoneModal(m)} className="btn btn-icon" title="Modifier"><Edit3 size={14}/></button>
+                       <button onClick={() => handleDeleteMilestone(m.id)} className="btn btn-icon text-danger" title="Supprimer"><Trash2 size={14}/></button>
                     </div>
                   </div>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{m.description}</p>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>{m.description}</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Échéance : {m.dueDate ? new Date(m.dueDate).toLocaleDateString() : 'Non définie'}</span>
+                    <span className={`badge ${m.status.toLowerCase()}`}>{m.status}</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -407,6 +472,56 @@ export default function ProjectWorkspaceSupervisor() {
                  <button onClick={() => handleReviewDoc(selectedDoc.id, 'VALIDATED')} className="btn btn-success">Valider le document</button>
               </div>
            </div>
+        </div>
+      )}
+
+      {/* Milestone Modal */}
+      {isMilestoneModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content card" style={{ maxWidth: '500px' }}>
+            <h3 style={{ fontWeight: 700, marginBottom: '24px' }}>
+              {editingMilestone ? 'Modifier le jalon' : 'Ajouter un nouveau jalon'}
+            </h3>
+            <form onSubmit={handleSaveMilestone}>
+              <div className="form-group">
+                <label className="form-label">Titre du jalon</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  required
+                  value={milestoneForm.title}
+                  onChange={e => setMilestoneForm({...milestoneForm, title: e.target.value})}
+                  placeholder="Ex: Analyse des besoins, Conception, etc."
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Description</label>
+                <textarea 
+                  className="form-input" 
+                  rows="3"
+                  value={milestoneForm.description}
+                  onChange={e => setMilestoneForm({...milestoneForm, description: e.target.value})}
+                  placeholder="Détails sur le travail attendu..."
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Date d'échéance</label>
+                <input 
+                  type="date" 
+                  className="form-input"
+                  required
+                  value={milestoneForm.dueDate}
+                  onChange={e => setMilestoneForm({...milestoneForm, dueDate: e.target.value})}
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' }}>
+                <button type="button" onClick={() => setIsMilestoneModalOpen(false)} className="btn btn-ghost">Annuler</button>
+                <button type="submit" className="btn btn-primary">
+                  {editingMilestone ? 'Enregistrer les modifications' : 'Créer le jalon'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

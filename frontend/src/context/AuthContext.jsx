@@ -29,22 +29,18 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const res = await API.post('/auth/login', { email, password })
-    const { token: newToken, ...userData } = res.data
+    const { token: newToken } = res.data
     localStorage.setItem('token', newToken)
-    localStorage.setItem('user', JSON.stringify(userData))
     setToken(newToken)
-    setUser(userData)
-    return userData
+    return await fetchCurrentUser()
   }
 
   const register = async (userData) => {
     const res = await API.post('/auth/register', userData)
-    const { token: newToken, ...newUserData } = res.data
+    const { token: newToken } = res.data
     localStorage.setItem('token', newToken)
-    localStorage.setItem('user', JSON.stringify(newUserData))
     setToken(newToken)
-    setUser(newUserData)
-    return newUserData
+    return await fetchCurrentUser()
   }
 
   const logout = () => {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Search, X, CheckCircle, XCircle, LayoutGrid, List as ListIcon, 
-  Trash2, MessageSquare, Save, Download, User as UserIcon, Award, ArrowRight
+  Trash2, MessageSquare, Save, Download, User as UserIcon, Award, ArrowRight, Phone, Mail, BookOpen, GraduationCap as GradIcon, MessageCircle
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import DataTable from '../components/common/DataTable';
@@ -119,6 +119,12 @@ export default function Applications() {
             <button onClick={() => handleCancelApplication(row.id)} className="btn btn-sm btn-ghost"><Trash2 size={14} color="var(--accent-red)" /></button>
           )}
           <button onClick={() => setSelectedApp(row)} className="btn btn-sm btn-ghost">Gérer</button>
+          {!isStudent && (row.status === 'PENDING' || row.status === 'IN_REVIEW') && (
+            <>
+              <button onClick={() => handleUpdateStatus(row.id, 'ACCEPTED')} className="btn btn-sm btn-ghost" style={{ color: 'var(--accent-green)' }} title="Accepter"><CheckCircle size={14} /></button>
+              <button onClick={() => handleUpdateStatus(row.id, 'REJECTED')} className="btn btn-sm btn-ghost" style={{ color: 'var(--accent-red)' }} title="Refuser"><XCircle size={14} /></button>
+            </>
+          )}
         </div>
       )
     }
@@ -208,6 +214,7 @@ export default function Applications() {
         {selectedApp && (
           <div className="modal-overlay" onClick={() => setSelectedApp(null)}>
             <motion.div 
+              key={selectedApp.id}
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} 
               className="card sidebar-modal" 
               style={{ width: '650px', padding: '40px', overflowY: 'auto', maxHeight: '100vh' }} 
@@ -233,12 +240,155 @@ export default function Applications() {
                     <div style={{ padding: '10px', background: 'var(--accent-blue-soft)', borderRadius: '10px' }}>
                       <UserIcon size={20} color="var(--accent-blue)" />
                     </div>
-                    <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Profil Étudiant</h4>
+                    <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      {isStudent ? 'Mon Profil' : 'Profil Étudiant'}
+                    </h4>
                   </div>
-                  <div style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 500, paddingLeft: '2px' }}>
-                    {selectedApp.studentEmail || 'Non spécifié'}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Mail size={14} color="var(--accent-blue)" />
+                      </div>
+                      {isStudent ? (
+                        <span>{selectedApp.studentEmail || 'Non spécifié'}</span>
+                      ) : (
+                        <a 
+                          href={`mailto:${selectedApp.studentEmail}`} 
+                          style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} 
+                          onMouseOver={e => e.target.style.color = 'var(--accent-blue)'}
+                          onMouseOut={e => e.target.style.color = 'inherit'}
+                          title="Envoyer un email"
+                        >
+                          {selectedApp.studentEmail || 'Non spécifié'}
+                        </a>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Phone size={14} color="var(--accent-green)" />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        {isStudent ? (
+                          <span style={{ fontWeight: 600 }}>{selectedApp.studentPhone || 'Non spécifié'}</span>
+                        ) : (
+                          <a 
+                            href={`tel:${selectedApp.studentPhone}`} 
+                            style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', fontWeight: 600 }} 
+                            onMouseOver={e => e.target.style.color = 'var(--accent-blue)'}
+                            onMouseOut={e => e.target.style.color = 'inherit'}
+                            title="Appel téléphonique"
+                          >
+                            {selectedApp.studentPhone || 'Non spécifié'}
+                          </a>
+                        )}
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Appel vocal</span>
+                      </div>
+                      {!isStudent && selectedApp.studentPhone && (
+                        <a 
+                          href={`https://wa.me/${selectedApp.studentPhone.replace(/\D/g, '')}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          style={{ 
+                            marginLeft: 'auto',
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '6px 14px', borderRadius: '20px', 
+                            background: 'linear-gradient(135deg, var(--accent-green), var(--accent-blue))',
+                            color: 'white', fontSize: '0.75rem', fontWeight: 700,
+                            textDecoration: 'none', transition: 'all 0.3s ease',
+                            boxShadow: '0 4px 12px rgba(5, 150, 105, 0.2)'
+                          }}
+                          onMouseOver={e => { 
+                            e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)'; 
+                            e.currentTarget.style.boxShadow = '0 6px 15px rgba(30, 58, 138, 0.3)'; 
+                          }}
+                          onMouseOut={e => { 
+                            e.currentTarget.style.transform = 'translateY(0) scale(1)'; 
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(5, 150, 105, 0.2)'; 
+                          }}
+                        >
+                          <MessageCircle size={14} fill="white" /> WhatsApp
+                        </a>
+                      )}
+                    </div>
+                    {(selectedApp.studentDepartment || selectedApp.studentLevel) && (
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 400, display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '6px' }}>
+                        <GradIcon size={14} /> {selectedApp.studentLevel} {selectedApp.studentDepartment}
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {isStudent && (
+                  <div className="card topic-card" style={{ padding: '24px', background: 'var(--bg-primary)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                      <div style={{ padding: '10px', background: 'var(--accent-purple-soft)', borderRadius: '10px' }}>
+                        <Award size={20} color="var(--accent-purple)" />
+                      </div>
+                      <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        {selectedApp.topicType === 'STAGE' ? 'Responsable Entreprise' : 'Encadrant Académique'}
+                      </h4>
+                    </div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {/* Name of the contact */}
+                      <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                        {selectedApp.topicContactPerson || selectedApp.topicCreatedByName}
+                      </div>
+
+                      {/* Email */}
+                      <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Mail size={14} color="var(--accent-blue)" />
+                        </div>
+                        <a 
+                          href={`mailto:${selectedApp.topicCreatedByEmail}`} 
+                          style={{ color: 'inherit', textDecoration: 'none' }}
+                          onMouseOver={e => e.target.style.color = 'var(--accent-blue)'}
+                          onMouseOut={e => e.target.style.color = 'inherit'}
+                        >
+                          {selectedApp.topicCreatedByEmail || 'Email non renseigné'}
+                        </a>
+                      </div>
+
+                      {/* Phone & WhatsApp */}
+                      <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Phone size={14} color="var(--accent-green)" />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <a 
+                            href={selectedApp.topicCreatedByPhone ? `tel:${selectedApp.topicCreatedByPhone}` : '#'} 
+                            style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600, cursor: selectedApp.topicCreatedByPhone ? 'pointer' : 'default' }}
+                            onMouseOver={e => selectedApp.topicCreatedByPhone && (e.target.style.color = 'var(--accent-blue)')}
+                            onMouseOut={e => e.target.style.color = 'inherit'}
+                          >
+                            {selectedApp.topicCreatedByPhone || 'Téléphone non renseigné'}
+                          </a>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Contact Direct</span>
+                        </div>
+
+                        {selectedApp.topicCreatedByPhone && (
+                          <a 
+                            href={`https://wa.me/${selectedApp.topicCreatedByPhone.replace(/\D/g, '')}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{ 
+                              marginLeft: 'auto',
+                              display: 'flex', alignItems: 'center', gap: '6px',
+                              padding: '6px 14px', borderRadius: '20px', 
+                              background: 'linear-gradient(135deg, var(--accent-green), var(--accent-blue))',
+                              color: 'white', fontSize: '0.75rem', fontWeight: 700,
+                              textDecoration: 'none', transition: 'all 0.3s ease',
+                              boxShadow: '0 4px 12px rgba(5, 150, 105, 0.2)'
+                            }}
+                          >
+                            <MessageCircle size={14} fill="white" /> WhatsApp
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div 
                   className="card topic-card" 
@@ -268,18 +418,23 @@ export default function Applications() {
               </div>
 
               <div style={{ marginBottom: '32px' }}>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
                    <MessageSquare size={18} color="var(--accent-purple)" /> Lettre de motivation
                 </h4>
                 <div 
                   className="card" 
                   style={{ 
                     padding: '24px', background: 'var(--bg-secondary)', fontSize: '0.95rem', 
-                    lineHeight: 1.7, color: 'var(--text-primary)', borderRadius: '12px',
-                    border: '1px solid var(--border)'
-                  }} 
-                  dangerouslySetInnerHTML={{ __html: selectedApp.motivationText }} 
-                />
+                    lineHeight: 1.8, color: 'var(--text-primary)', borderRadius: '16px',
+                    border: '1px solid var(--border)', position: 'relative',
+                    fontStyle: 'italic', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+                  }}
+                >
+                  <div style={{ position: 'absolute', top: '-10px', left: '20px', background: 'var(--bg-secondary)', padding: '0 8px', color: 'var(--accent-purple)', opacity: 0.5 }}>
+                    <MessageSquare size={20} fill="currentColor" />
+                  </div>
+                  <div dangerouslySetInnerHTML={{ __html: selectedApp.motivationText }} />
+                </div>
               </div>
 
               {isSupervisor && selectedApp.status === 'PENDING' && (
@@ -298,14 +453,26 @@ export default function Applications() {
                 </div>
               )}
 
-              {isAdminOrOwner && selectedApp.status === 'PENDING' && (
-                <div style={{ display: 'flex', gap: '12px', marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid var(--border)' }}>
-                  <button onClick={() => handleUpdateStatus(selectedApp.id, 'ACCEPTED')} className="btn btn-primary" style={{ flex: 1 }}>
-                    <CheckCircle size={18} /> Accepter la candidature
-                  </button>
-                  <button onClick={() => handleUpdateStatus(selectedApp.id, 'REJECTED')} className="btn btn-ghost text-danger" style={{ flex: 1 }}>
-                    <XCircle size={18} /> Refuser
-                  </button>
+              {(user?.role === 'ADMIN' || user?.role === 'SUPERVISOR' || user?.role === 'COMPANY') && (selectedApp.status === 'PENDING' || selectedApp.status === 'IN_REVIEW') && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button onClick={() => handleUpdateStatus(selectedApp.id, 'ACCEPTED')} className="btn btn-primary" style={{ flex: 1 }}>
+                      <CheckCircle size={18} /> Accepter
+                    </button>
+                    <button onClick={() => handleUpdateStatus(selectedApp.id, 'REJECTED')} className="btn btn-ghost text-danger" style={{ flex: 1 }}>
+                      <XCircle size={18} /> Refuser
+                    </button>
+                  </div>
+                  
+                  {selectedApp.status === 'PENDING' && (
+                    <button 
+                      onClick={() => handleUpdateStatus(selectedApp.id, 'IN_REVIEW')} 
+                      className="btn btn-ghost" 
+                      style={{ width: '100%', color: 'var(--accent-purple)', background: 'var(--accent-purple-soft)' }}
+                    >
+                      <Eye size={18} /> Marquer comme "En cours d'examen"
+                    </button>
+                  )}
                 </div>
               )}
             </motion.div>

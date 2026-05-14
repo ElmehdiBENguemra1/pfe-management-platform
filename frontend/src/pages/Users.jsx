@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import DataTable from '../components/common/DataTable';
 import StatusBadge from '../components/common/StatusBadge';
 import { 
-  Search, Users as UsersIcon, UserPlus, Filter, 
+  Search, Users as UsersIcon, Filter, 
   MoreVertical, Shield, UserX, UserCheck, Eye, Ghost, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -186,9 +186,7 @@ export default function Users() {
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Gérez les comptes, les rôles et les permissions.</p>
           </div>
         </div>
-        <button className="btn btn-primary">
-          <UserPlus size={16} /> Nouvel Utilisateur
-        </button>
+
       </div>
 
       {/* Tabs */}
