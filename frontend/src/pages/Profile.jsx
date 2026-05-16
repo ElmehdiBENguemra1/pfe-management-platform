@@ -17,6 +17,44 @@ export default function Profile() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   
+  const countries = [
+    { code: '+212', name: 'Maroc', flag: '🇲🇦' },
+    { code: '+33', name: 'France', flag: '🇫🇷' },
+    { code: '+34', name: 'Espagne', flag: '🇪🇸' },
+    { code: '+39', name: 'Italie', flag: '🇮🇹' },
+    { code: '+49', name: 'Allemagne', flag: '🇩🇪' },
+    { code: '+32', name: 'Belgique', flag: '🇧🇪' },
+    { code: '+41', name: 'Suisse', flag: '🇨🇭' },
+    { code: '+213', name: 'Algérie', flag: '🇩🇿' },
+    { code: '+216', name: 'Tunisie', flag: '🇹🇳' },
+    { code: '+221', name: 'Sénégal', flag: '🇸🇳' },
+    { code: '+225', name: 'Côte d\'Ivoire', flag: '🇨🇮' },
+    { code: '+222', name: 'Mauritanie', flag: '🇲🇷' },
+    { code: '+1', name: 'USA/Canada', flag: '🇺🇸' },
+    { code: '+44', name: 'UK', flag: '🇬🇧' },
+    { code: '+966', name: 'Arabie Saoudite', flag: '🇸🇦' },
+    { code: '+971', name: 'UAE', flag: '🇦🇪' },
+    { code: '+974', name: 'Qatar', flag: '🇶🇦' },
+    { code: '+90', name: 'Turquie', flag: '🇹🇷' },
+    { code: '+86', name: 'Chine', flag: '🇨🇳' },
+    { code: '+20', name: 'Égypte', flag: '🇪🇬' },
+    { code: '+212', name: 'Maroc', flag: '🇲🇦' },
+  ];
+
+  // Helper to extract country code and number
+  const parsePhone = (fullPhone) => {
+    if (!fullPhone) return { prefix: '+212', num: '' };
+    const country = countries.find(c => fullPhone.startsWith(c.code));
+    if (country) {
+      return { prefix: country.code, num: fullPhone.replace(country.code, '') };
+    }
+    return { prefix: '+212', num: fullPhone };
+  };
+
+  const initialPhone = parsePhone(user?.phone);
+  const [countryCode, setCountryCode] = useState(initialPhone.prefix);
+  const [phoneNum, setPhoneNum] = useState(initialPhone.num);
+
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -52,7 +90,15 @@ export default function Profile() {
     e.preventDefault();
     try {
       setLoading(true);
-      const res = await API.put('/auth/me', formData);
+      
+      // Strip leading zero if present and concatenate with country code
+      let formattedNum = phoneNum.trim();
+      if (formattedNum.startsWith('0')) {
+        formattedNum = formattedNum.substring(1);
+      }
+      const fullPhone = countryCode + formattedNum;
+      
+      const res = await API.put('/auth/me', { ...formData, phone: fullPhone });
       await refreshUser();
       toast.success('Profil mis à jour !');
     } catch (err) {
@@ -90,9 +136,33 @@ export default function Profile() {
                 <label className="form-label">Nom</label>
                 <input type="text" className="form-input" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} />
               </div>
-              <div className="form-group">
-                <label className="form-label">Téléphone</label>
-                <input type="text" className="form-input" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">Téléphone (WhatsApp)</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <select 
+                    className="form-input" 
+                    style={{ width: '120px' }}
+                    value={countryCode}
+                    onChange={e => setCountryCode(e.target.value)}
+                  >
+                    {countries.map(c => (
+                      <option key={c.code} value={c.code}>
+                        {c.flag} {c.name} ({c.code})
+                      </option>
+                    ))}
+                  </select>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="Ex: 612345678"
+                    value={phoneNum} 
+                    onChange={e => setPhoneNum(e.target.value)} 
+                    style={{ flex: 1 }}
+                  />
+                </div>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Note: Ne pas commencer par le chiffre 0.
+                </p>
               </div>
 
               <div className="form-group">

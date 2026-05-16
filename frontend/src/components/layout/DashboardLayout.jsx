@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
+import FloatingChatBot from '../chatbot/FloatingChatBot';
 
 export default function DashboardLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -39,6 +40,8 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+
+      <FloatingChatBot />
     </div>
   );
 }
