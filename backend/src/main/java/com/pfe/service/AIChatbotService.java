@@ -20,6 +20,7 @@ public class AIChatbotService {
     private String geminiApiKey;
 
     private final RestTemplate restTemplate;
+    private final com.pfe.repository.TopicRepository topicRepository;
 
     // Models to try in order — gemini-2.5-flash has separate quota and works!
     private static final String[] GEMINI_MODELS = {
@@ -39,12 +40,14 @@ public class AIChatbotService {
         log.info("==================================================");
     }
 
-    public AIChatResponse getChatResponse(String message) {
+    public AIChatResponse getChatResponse(String message, com.pfe.entity.User user) {
+        String systemContext = buildSystemContext(user);
+        
         // 1. Try Gemini with multiple models
         if (geminiApiKey != null && !geminiApiKey.isEmpty()) {
             for (String model : GEMINI_MODELS) {
                 try {
-                    AIChatResponse resp = callGemini(message, model);
+                    AIChatResponse resp = callGemini(systemContext, message, model);
                     if (resp != null) return resp;
                 } catch (Exception e) {
                     log.warn("Gemini model '{}' failed: {}", model, e.getMessage());
@@ -54,7 +57,7 @@ public class AIChatbotService {
 
         // 2. Try Pollinations AI (free, no key needed)
         try {
-            AIChatResponse resp = callPollinations(message);
+            AIChatResponse resp = callPollinations(systemContext, message);
             if (resp != null) return resp;
         } catch (Exception e) {
             log.warn("Pollinations failed: {}", e.getMessage());
@@ -67,15 +70,46 @@ public class AIChatbotService {
                 .build();
     }
 
-    private AIChatResponse callGemini(String message, String model) {
+    private String buildSystemContext(com.pfe.entity.User user) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Tu es un assistant IA pour la plateforme de gestion de PFE 'SmartPFE'.\n");
+        sb.append("Utilisateur actuel: ").append(user.getFirstName()).append(" ").append(user.getLastName());
+        sb.append(" (Rôle: ").append(user.getRole()).append(").\n");
+        
+        if (user.getStudentProfile() != null) {
+            sb.append("Compétences de l'étudiant: ").append(user.getStudentProfile().getSkills()).append("\n");
+            sb.append("Bio/Intérêts: ").append(user.getStudentProfile().getBio()).append("\n");
+        }
+
+        List<com.pfe.entity.Topic> topics = topicRepository.findByStatus(com.pfe.enums.TopicStatus.APPROVED);
+        if (!topics.isEmpty()) {
+            sb.append("\nVoici les sujets de PFE disponibles actuellement:\n");
+            for (com.pfe.entity.Topic t : topics) {
+                sb.append("- [ID: ").append(t.getId()).append("] ").append(t.getTitle());
+                sb.append(" (Domaine: ").append(t.getDomain()).append(") ");
+                sb.append("- Compétences requises: ").append(t.getRequiredSkills()).append("\n");
+            }
+            sb.append("\nSi l'étudiant demande une recommandation, analyse ses compétences et suggère les meilleurs sujets parmi la liste ci-dessus.");
+        } else {
+            sb.append("\nAucun sujet n'est disponible pour le moment.");
+        }
+
+        sb.append("\nRéponds toujours en français de manière professionnelle et concise.");
+        return sb.toString();
+    }
+
+    private AIChatResponse callGemini(String systemContext, String message, String model) {
         log.info("Trying Gemini model: {}", model);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
+        // Merge system context and message for Gemini
+        String combinedPrompt = systemContext + "\n\nQuestion de l'utilisateur: " + message;
+
         Map<String, Object> requestBody = new HashMap<>();
         Map<String, Object> contents = new HashMap<>();
         Map<String, Object> parts = new HashMap<>();
-        parts.put("text", message);
+        parts.put("text", combinedPrompt);
         contents.put("parts", Collections.singletonList(parts));
         requestBody.put("contents", Collections.singletonList(contents));
 
@@ -111,64 +145,66 @@ public class AIChatbotService {
         throw new RuntimeException("Gemini model '" + model + "' returned no valid response");
     }
 
-    private AIChatResponse callPollinations(String message) throws Exception {
-        log.info("Trying Pollinations AI fallback...");
+    private AIChatResponse callPollinations(String systemContext, String message) {
+        try {
+            log.info("Trying Pollinations AI fallback...");
+            String url = "https://text.pollinations.ai/openai";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
-        // Use the new OpenAI-compatible endpoint
-        String url = "https://text.pollinations.ai/openai";
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", "openai");
+            
+            List<Map<String, String>> messages = new ArrayList<>();
+            Map<String, String> sysMsg = new HashMap<>();
+            sysMsg.put("role", "system");
+            sysMsg.put("content", systemContext);
+            messages.add(sysMsg);
+            
+            Map<String, String> userMsg = new HashMap<>();
+            userMsg.put("role", "user");
+            userMsg.put("content", message);
+            messages.add(userMsg);
+            
+            requestBody.put("messages", messages);
 
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", "openai");
-        
-        List<Map<String, String>> messages = new ArrayList<>();
-        Map<String, String> systemMsg = new HashMap<>();
-        systemMsg.put("role", "system");
-        systemMsg.put("content", "Tu es un assistant IA intelligent pour une plateforme de gestion de projets de fin d'études (PFE). Réponds en français de manière concise et utile.");
-        messages.add(systemMsg);
-        
-        Map<String, String> userMsg = new HashMap<>();
-        userMsg.put("role", "user");
-        userMsg.put("content", message);
-        messages.add(userMsg);
-        
-        requestBody.put("messages", messages);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+            );
 
-        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                url,
-                HttpMethod.POST,
-                entity,
-                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
-        );
-
-        Map<String, Object> body = response.getBody();
-        if (body != null && body.containsKey("choices")) {
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> choices = (List<Map<String, Object>>) body.get("choices");
-            if (choices != null && !choices.isEmpty()) {
+            Map<String, Object> body = response.getBody();
+            if (body != null && body.containsKey("choices")) {
                 @SuppressWarnings("unchecked")
-                Map<String, Object> msgObj = (Map<String, Object>) choices.get(0).get("message");
-                String text = (String) msgObj.get("content");
-                log.info("Pollinations AI responded successfully");
+                List<Map<String, Object>> choices = (List<Map<String, Object>>) body.get("choices");
+                if (choices != null && !choices.isEmpty()) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> msgObj = (Map<String, Object>) choices.get(0).get("message");
+                    String text = (String) msgObj.get("content");
+                    log.info("Pollinations AI responded successfully");
+                    return AIChatResponse.builder()
+                            .response(text)
+                            .modelUsed("Pollinations AI")
+                            .build();
+                }
+            }
+
+            // Secondary fallback: simple text endpoint
+            String encodedMessage = java.net.URLEncoder.encode(message, java.nio.charset.StandardCharsets.UTF_8.toString());
+            String simpleUrl = "https://text.pollinations.ai/" + encodedMessage;
+            String simpleResponse = restTemplate.getForObject(simpleUrl, String.class);
+            if (simpleResponse != null && !simpleResponse.isEmpty()) {
                 return AIChatResponse.builder()
-                        .response(text)
-                        .modelUsed("Pollinations AI")
+                        .response(simpleResponse)
+                        .modelUsed("Pollinations AI (Text)")
                         .build();
             }
-        }
-
-        // Fallback: try simple text endpoint
-        String encodedMessage = java.net.URLEncoder.encode(message, java.nio.charset.StandardCharsets.UTF_8.toString());
-        String simpleUrl = "https://text.pollinations.ai/" + encodedMessage;
-        String simpleResponse = restTemplate.getForObject(simpleUrl, String.class);
-        if (simpleResponse != null && !simpleResponse.isEmpty()) {
-            return AIChatResponse.builder()
-                    .response(simpleResponse)
-                    .modelUsed("Pollinations AI (Text)")
-                    .build();
+        } catch (Exception e) {
+            log.error("Pollinations AI failed: {}", e.getMessage());
         }
         return null;
     }

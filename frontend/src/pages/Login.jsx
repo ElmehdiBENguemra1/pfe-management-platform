@@ -20,6 +20,7 @@ export default function Login() {
   const [resetIdentifier, setResetIdentifier] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -269,11 +270,33 @@ export default function Login() {
                   <div style={{ position: 'relative' }}>
                     <Lock style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={17} />
                     <input 
-                      required type="password" 
+                      required 
+                      type={showResetPassword ? "text" : "password"} 
                       className="form-input" 
-                      style={{ paddingLeft: '42px' }}
-                      value={newPassword} onChange={(e) => setNewPassword(e.target.value)} 
+                      style={{ paddingLeft: '42px', paddingRight: '42px' }}
+                      value={newPassword} 
+                      onChange={(e) => setNewPassword(e.target.value)} 
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowResetPassword(!showResetPassword)}
+                      style={{
+                        position: 'absolute',
+                        right: '12px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: '#94a3b8',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '4px'
+                      }}
+                    >
+                      {showResetPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
                   </div>
                 </div>
                 <button type="submit" className="btn btn-primary" disabled={loading} style={{ marginTop: '8px' }}>

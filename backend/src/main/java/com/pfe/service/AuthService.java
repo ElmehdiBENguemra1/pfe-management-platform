@@ -210,8 +210,11 @@ public class AuthService {
         // For simplicity, we check email first.
         Optional<User> userOpt = userRepository.findByEmail(identifier);
         
-        // If not found by email, we might search by phone.
-        // Assuming we rely primarily on email or we need to add findByPhone if needed.
+        // If not found by email, search by phone
+        if (userOpt.isEmpty()) {
+            userOpt = userRepository.findByPhone(identifier);
+        }
+        
         if (userOpt.isEmpty()) {
             throw new BadRequestException("Aucun compte n'est reconnu avec cet identifiant.");
         }
