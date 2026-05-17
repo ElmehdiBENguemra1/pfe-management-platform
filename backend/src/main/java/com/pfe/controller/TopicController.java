@@ -100,4 +100,13 @@ public class TopicController {
         topicService.deleteTopic(id, user);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{topicId}/invite/{studentId}")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'COMPANY', 'ADMIN')")
+    public ResponseEntity<Void> inviteStudent(@PathVariable Long topicId,
+                                               @PathVariable Long studentId,
+                                               @AuthenticationPrincipal User user) {
+        topicService.inviteStudent(topicId, studentId, user);
+        return ResponseEntity.ok().build();
+    }
 }

@@ -27,6 +27,7 @@ export default function Dashboard() {
   const [recommendations, setRecommendations] = useState([]);
   const [studentApps, setStudentApps] = useState([]);
   const [studentProject, setStudentProject] = useState(null);
+  const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { 
@@ -57,18 +58,55 @@ export default function Dashboard() {
     }
   };
 
+  const handleExploreInvitation = async (inv) => {
+    try {
+      await API.delete(`/notifications/${inv.id}`);
+      setInvitations(prev => prev.filter(n => n.id !== inv.id));
+    } catch (err) {
+      console.error('Erreur lors de la suppression de la notification:', err);
+    }
+
+    let query = '';
+    let isCompany = false;
+    if (inv.content.startsWith("L'entreprise ")) {
+      query = inv.content.split("L'entreprise ")[1]?.split(" vous invite")[0] || '';
+      isCompany = true;
+    } else if (inv.content.startsWith("L'encadrant ")) {
+      query = inv.content.split("L'encadrant ")[1]?.split(" vous invite")[0] || '';
+    }
+    
+    if (!query) {
+      const match = inv.content.match(/"([^"]+)"/);
+      query = match ? match[1] : '';
+    }
+
+    navigate('/topics', { 
+      state: { 
+        initialSearch: query,
+        initialFilter: isCompany ? 'INTERNSHIP' : 'ALL'
+      } 
+    });
+  };
+
   const fetchStudentDashboardData = async () => {
     try {
       setLoading(true);
-      const [appsRes, projectsRes, topicsRes] = await Promise.all([
+      const [appsRes, projectsRes, topicsRes, notifsRes] = await Promise.all([
         API.get('/applications'),
         API.get('/projects'),
-        API.get('/topics')
+        API.get('/topics'),
+        API.get('/notifications')
       ]);
       setStudentApps(appsRes.data || []);
       const myProject = projectsRes.data?.find?.(p => p.student?.id === user?.id) || null;
       setStudentProject(myProject);
       setRecommendations(topicsRes.data?.slice(0, 3) || []);
+
+      const filteredInvites = (notifsRes.data || []).filter(n => 
+        n.content?.toLowerCase().includes('invite') || 
+        n.content?.toLowerCase().includes('invitation')
+      );
+      setInvitations(filteredInvites);
     } catch (err) {
       console.error('Student Dashboard Error:', err);
     } finally {
@@ -136,6 +174,22 @@ export default function Dashboard() {
                 <h3 style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '8px' }}>Aucune candidature active</h3>
                 <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>Commencez par explorer les sujets proposés par les encadrants.</p>
                 <Link to="/topics" className="btn btn-primary" style={{ margin: '0 auto' }}>Voir le catalogue</Link>
+              </div>
+            )}
+
+            {invitations.length > 0 && (
+              <div className="card animate-fade-in" style={{ padding: '24px', borderLeft: '4px solid var(--accent-yellow)', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <h3 style={{ fontWeight: 700, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', margin: 0 }}>
+                  <Bell size={18} color="var(--accent-yellow)" style={{ animation: 'pulse 2s infinite' }} /> Invitations à postuler ({invitations.length})
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {invitations.map(inv => (
+                    <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                      <p style={{ fontSize: '0.85rem', margin: 0, flex: 1, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{inv.content}</p>
+                      <button onClick={() => handleExploreInvitation(inv)} className="btn btn-xs btn-primary" style={{ marginLeft: '16px', fontSize: '0.7rem' }}>Explorer</button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

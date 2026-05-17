@@ -59,6 +59,14 @@ public class NotificationService {
         notificationRepository.saveAll(unread);
     }
 
+    @Transactional
+    public void deleteNotification(Long notificationId) {
+        if (!notificationRepository.existsById(notificationId)) {
+            throw new ResourceNotFoundException("Notification not found");
+        }
+        notificationRepository.deleteById(notificationId);
+    }
+
     private NotificationResponse mapToResponse(Notification notification) {
         return NotificationResponse.builder()
                 .id(notification.getId())

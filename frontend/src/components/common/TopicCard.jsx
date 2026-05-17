@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { getLevelLabel } from '../../constants/levels';
-import { Clock, User, Tag, Heart } from 'lucide-react';
+import { Clock, User, Tag, Bookmark } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
 export default function TopicCard({ topic, onToggleFavorite, isFavorite, onClick }) {
@@ -27,8 +27,9 @@ export default function TopicCard({ topic, onToggleFavorite, isFavorite, onClick
         style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', cursor: 'pointer', zIndex: 2, padding: '4px', borderRadius: '50%', transition: 'background 0.2s' }}
         onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        title="Ajouter à consulter"
       >
-        <Heart size={20} fill={isFavorite ? 'var(--accent-red)' : 'none'} color={isFavorite ? 'var(--accent-red)' : 'var(--text-muted)'} />
+        <Bookmark size={20} fill={isFavorite ? 'var(--accent-blue)' : 'none'} color={isFavorite ? 'var(--accent-blue)' : 'var(--text-muted)'} />
       </button>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
@@ -40,9 +41,11 @@ export default function TopicCard({ topic, onToggleFavorite, isFavorite, onClick
           }}>
             {topic.type}
           </span>
-          <span className="badge" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)', fontWeight: 700, fontSize: '0.7rem', padding: '6px 12px' }}>
-            {getLevelLabel(topic.requiredLevel)}
-          </span>
+          {topic.requiredLevel && (
+            <span className="badge" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)', fontWeight: 700, fontSize: '0.7rem', padding: '6px 12px' }}>
+              {getLevelLabel(topic.requiredLevel)}
+            </span>
+          )}
         </div>
 
         <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.4, marginTop: '2px', paddingRight: '28px' }}>

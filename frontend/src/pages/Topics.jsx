@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import DataTable from '../components/common/DataTable';
+import { useLocation } from 'react-router-dom';
 import StatusBadge from '../components/common/StatusBadge';
 import TopicCard from '../components/common/TopicCard';
 import ApplicationModal from '../components/common/ApplicationModal';
@@ -10,12 +11,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import API from '../api/axios';
 import toast from 'react-hot-toast';
 import TopicFormModal from '../components/common/TopicFormModal';
-import { Copy, Plus as PlusIcon, FileText as DocIcon, Trash2 as DeleteIcon, Eye, Tag } from 'lucide-react';
+import { Copy, Plus as PlusIcon, FileText as DocIcon, Trash2 as DeleteIcon, Eye, Tag, Bookmark } from 'lucide-react';
 import { getLevelLabel } from '../constants/levels';
 
 export default function Topics() {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const location = useLocation();
   const [topics, setTopics] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +37,13 @@ export default function Topics() {
   useEffect(() => { 
     fetchTopics();
     if (user?.role === 'STUDENT') fetchFavorites();
-  }, []);
+    if (location.state?.initialSearch) {
+      setSearchQuery(location.state.initialSearch);
+    }
+    if (location.state?.initialFilter) {
+      setFilterType(location.state.initialFilter);
+    }
+  }, [location.state]);
 
   const fetchTopics = async () => {
     try {
@@ -69,7 +77,7 @@ export default function Topics() {
       await API.post(`/student/topics/${id}/favorite`);
       setFavorites(prev => prev.includes(id) ? prev.filter(fid => fid !== id) : [...prev, id]);
     } catch {
-      toast.error('Error toggling favorite');
+      toast.error('Error toggling list');
     }
   };
 
@@ -117,9 +125,41 @@ export default function Topics() {
     }
   };
 
+  const cleanText = (str) => {
+    if (!str) return '';
+    return str
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  };
+
   const filteredTopics = topics.filter(t => {
-    const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         t.requiredSkills?.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!searchQuery.trim()) {
+      const matchesType = filterType === 'ALL' || t.type === filterType;
+      const matchesFav = filterType !== 'TO_CONSULT' || favorites.includes(t.id);
+      return matchesType && matchesFav;
+    }
+
+    const cleanQuery = cleanText(searchQuery);
+    const keywords = cleanQuery.split(/\s+/).filter(w => w.length > 0);
+
+    const matchesSearch = keywords.every(kw => {
+      const cleanTitle = cleanText(t.title);
+      const cleanSkills = cleanText(t.requiredSkills);
+      const cleanCreator = cleanText(t.createdByName);
+      const cleanDomain = cleanText(t.domain);
+      const cleanDescription = cleanText(t.description);
+
+      return cleanTitle.includes(kw) || 
+             cleanSkills.includes(kw) || 
+             cleanCreator.includes(kw) ||
+             cleanDomain.includes(kw) ||
+             cleanDescription.includes(kw);
+    });
+
+    if (filterType === 'TO_CONSULT') {
+      return matchesSearch && favorites.includes(t.id);
+    }
     const matchesType = filterType === 'ALL' || t.type === filterType;
     return matchesSearch && matchesType;
   });
@@ -146,7 +186,7 @@ export default function Topics() {
               </button>
             </>
           )}
-          {(user?.role === 'SUPERVISOR' || isAdmin) && (
+          {(user?.role === 'SUPERVISOR' || user?.role === 'COMPANY' || isAdmin) && (
             <>
               <button onClick={() => { setTopicToEdit(row); setIsFormModalOpen(true); }} className="btn btn-sm btn-ghost" title="Modifier"><Edit3 size={14} /></button>
               <button onClick={() => handleDuplicate(row.id)} className="btn btn-sm btn-ghost" title="Dupliquer"><Copy size={14} /></button>
@@ -168,7 +208,7 @@ export default function Topics() {
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{isStudent ? 'Trouvez le sujet idéal pour votre PFE ou stage.' : 'Gérez les propositions de sujets et les candidatures.'}</p>
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
-            {user?.role === 'SUPERVISOR' && (
+            {(user?.role === 'SUPERVISOR' || user?.role === 'COMPANY') && (
               <button onClick={() => { setTopicToEdit(null); setIsFormModalOpen(true); }} className="btn btn-primary">
                 <PlusIcon size={16} /> Nouveau sujet
               </button>
@@ -198,7 +238,7 @@ export default function Topics() {
               placeholder="Rechercher par titre ou technologie..."
             />
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {['ALL', 'PFE', 'INTERNSHIP'].map(type => (
               <button 
                 key={type} 
@@ -208,6 +248,15 @@ export default function Topics() {
                 {type === 'ALL' ? 'Tous' : type}
               </button>
             ))}
+            {isStudent && (
+              <button 
+                onClick={() => setFilterType(filterType === 'TO_CONSULT' ? 'ALL' : 'TO_CONSULT')}
+                className={`btn btn-sm ${filterType === 'TO_CONSULT' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Bookmark size={14} fill={filterType === 'TO_CONSULT' ? 'white' : 'none'} color={filterType === 'TO_CONSULT' ? 'white' : 'var(--text-muted)'} /> À consulter
+              </button>
+            )}
           </div>
         </div>
       </div>

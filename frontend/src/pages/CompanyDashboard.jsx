@@ -23,11 +23,37 @@ export default function CompanyDashboard() {
   const [selectedTopicId, setSelectedTopicId] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
+  const [invitingStudent, setInvitingStudent] = useState(null);
+  const [inviteTopicId, setInviteTopicId] = useState('');
 
   useEffect(() => {
     setIsReady(true);
     fetchDashboardData();
   }, []);
+
+  const handleInviteClick = (student) => {
+    const approvedTopics = topics.filter(t => t.status === 'APPROVED');
+    if (approvedTopics.length === 0) {
+      toast.error("Vous devez avoir au moins une offre approuvée pour inviter des étudiants.");
+      return;
+    }
+    if (approvedTopics.length === 1) {
+      sendInvitation(approvedTopics[0].id, student.id);
+    } else {
+      setInvitingStudent(student);
+      setInviteTopicId(approvedTopics[0].id.toString());
+    }
+  };
+
+  const sendInvitation = async (topicId, studentId) => {
+    try {
+      await API.post(`/topics/${topicId}/invite/${studentId}`);
+      toast.success('Invitation envoyée avec succès !');
+      setInvitingStudent(null);
+    } catch {
+      toast.error("Échec de l'envoi de l'invitation.");
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -171,7 +197,7 @@ export default function CompanyDashboard() {
                          <span key={s} className="badge" style={{ fontSize: '0.6rem', padding: '2px 6px' }}>{s.trim()}</span>
                        ))}
                     </div>
-                    <button onClick={() => toast.success('Invitation envoyée !')} className="btn btn-xs btn-primary" style={{ width: '100%', fontSize: '0.7rem' }}>Inviter à postuler</button>
+                    <button onClick={() => handleInviteClick(student)} className="btn btn-xs btn-primary" style={{ width: '100%', fontSize: '0.7rem' }}>Inviter à postuler</button>
                   </div>
                 ))}
              </div>
@@ -187,6 +213,36 @@ export default function CompanyDashboard() {
         </div>
 
       </div>
+
+      {invitingStudent && (
+        <div className="modal-overlay" style={{ zIndex: 1100 }}>
+          <div className="modal-content card" style={{ maxWidth: '450px', width: '90%', padding: '28px', background: 'var(--bg-primary)', boxShadow: 'var(--shadow-lg)' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)' }}>Inviter à postuler</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.5 }}>
+              Sélectionnez l'offre pour laquelle vous souhaitez inviter <strong>{invitingStudent.firstName} {invitingStudent.lastName}</strong> à postuler :
+            </p>
+            <div style={{ marginBottom: '24px' }}>
+              <label className="form-label" style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>Offre de stage active</label>
+              <select 
+                className="form-input" 
+                value={inviteTopicId} 
+                onChange={e => setInviteTopicId(e.target.value)}
+                style={{ width: '100%', marginTop: '6px' }}
+              >
+                {topics.filter(t => t.status === 'APPROVED').map(t => (
+                  <option key={t.id} value={t.id}>{t.title}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button onClick={() => setInvitingStudent(null)} className="btn btn-sm btn-ghost">Annuler</button>
+              <button onClick={() => sendInvitation(inviteTopicId, invitingStudent.id)} className="btn btn-sm btn-primary">
+                Envoyer l'invitation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

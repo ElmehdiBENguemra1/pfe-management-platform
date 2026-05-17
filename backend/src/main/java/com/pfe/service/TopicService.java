@@ -191,6 +191,29 @@ public class TopicService {
         return mapToResponse(topicRepository.save(duplicate));
     }
 
+    @Transactional
+    public void inviteStudent(Long topicId, Long studentId, User user) {
+        Topic topic = topicRepository.findById(topicId)
+                .orElseThrow(() -> new ResourceNotFoundException("Topic not found"));
+
+        if (!topic.getCreatedBy().getId().equals(user.getId()) &&
+                !user.getRole().name().equals("ADMIN")) {
+            throw new BadRequestException("You can only invite students to your own topics");
+        }
+
+        String senderName = topic.getCreatedBy().getFirstName() + " " + topic.getCreatedBy().getLastName();
+        if (topic.getCreatedBy().getRole() == com.pfe.enums.Role.COMPANY && topic.getCreatedBy().getCompany() != null) {
+            senderName = topic.getCreatedBy().getCompany().getCompanyName();
+        }
+
+        String content = "L'entreprise " + senderName + " vous invite à postuler pour le sujet : \"" + topic.getTitle() + "\".";
+        if (topic.getCreatedBy().getRole() != com.pfe.enums.Role.COMPANY) {
+            content = "L'encadrant " + senderName + " vous invite à postuler pour le sujet : \"" + topic.getTitle() + "\".";
+        }
+
+        notificationService.createNotification(studentId, content);
+    }
+
     public TopicResponse mapToResponse(Topic topic) {
         return TopicResponse.builder()
                 .id(topic.getId())
@@ -207,7 +230,10 @@ public class TopicService {
                 .status(topic.getStatus())
                 .rejectionComment(topic.getRejectionComment())
                 .createdById(topic.getCreatedBy() != null ? topic.getCreatedBy().getId() : null)
-                .createdByName(topic.getCreatedBy() != null ? topic.getCreatedBy().getFirstName() + " " + topic.getCreatedBy().getLastName() : "Unknown")
+                .createdByName(topic.getCreatedBy() != null ? 
+                    (topic.getCreatedBy().getRole() == com.pfe.enums.Role.COMPANY && topic.getCreatedBy().getCompany() != null ? 
+                        topic.getCreatedBy().getCompany().getCompanyName() : 
+                        topic.getCreatedBy().getFirstName() + " " + topic.getCreatedBy().getLastName()) : "Unknown")
                 .createdAt(topic.getCreatedAt())
                 .applicationCount(topic.getApplications() != null ? topic.getApplications().size() : 0)
                 .salary(topic.getSalary())
