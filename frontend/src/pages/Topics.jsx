@@ -135,7 +135,7 @@ export default function Topics() {
 
   const filteredTopics = topics.filter(t => {
     if (!searchQuery.trim()) {
-      const matchesType = filterType === 'ALL' || t.type === filterType;
+      const matchesType = filterType === 'ALL' || filterType === 'TO_CONSULT' || t.type === filterType;
       const matchesFav = filterType !== 'TO_CONSULT' || favorites.includes(t.id);
       return matchesType && matchesFav;
     }
