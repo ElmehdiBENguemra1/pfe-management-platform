@@ -112,22 +112,10 @@ public class ProjectService {
         AgreementStatus current = project.getAgreementStatus();
 
         if (currentUser.getRole() == Role.STUDENT && current == AgreementStatus.PENDING) {
-            if (!project.getStudent().getId().equals(currentUser.getId())) {
-                throw new BadRequestException("Only the assigned student can sign this agreement");
-            }
             project.setAgreementStatus(AgreementStatus.STUDENT_SIGNED);
-        } else if (current == AgreementStatus.STUDENT_SIGNED) {
-            if (project.getCompany() != null) {
-                if (currentUser.getRole() != Role.COMPANY || 
-                        !project.getCompany().getUser().getId().equals(currentUser.getId())) {
-                    throw new BadRequestException("Only the proposing company can sign this agreement");
-                }
-            } else {
-                if (currentUser.getRole() != Role.SUPERVISOR || 
-                        !project.getSupervisor().getId().equals(currentUser.getId())) {
-                    throw new BadRequestException("Only the assigned academic supervisor can sign this agreement");
-                }
-            }
+        } else if (currentUser.getRole() == Role.COMPANY && current == AgreementStatus.STUDENT_SIGNED) {
+            project.setAgreementStatus(AgreementStatus.COMPANY_SIGNED);
+            // Both signed → mark as completed
             project.setAgreementStatus(AgreementStatus.COMPLETED);
         } else {
             throw new BadRequestException("Cannot sign agreement in current state: " + current);

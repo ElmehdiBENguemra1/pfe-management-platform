@@ -366,21 +366,19 @@ export default function ProjectWorkspace() {
                         {(project.agreementStatus === 'STUDENT_SIGNED' || project.agreementStatus === 'COMPLETED') ? <CheckCircle size={24}/> : '2'}
                       </div>
                       <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{t('project_details.student_signature')}</span>
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                   </div>
+                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                       <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: project.agreementStatus === 'COMPLETED' ? 'var(--accent-green)' : 'var(--bg-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--border)' }}>
-                         {project.agreementStatus === 'COMPLETED' ? <CheckCircle size={24}/> : '3'}
+                        {project.agreementStatus === 'COMPLETED' ? <CheckCircle size={24}/> : '3'}
                       </div>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
-                        {project.companySupervisor != null ? t('project_details.company_signature') : "Signature de l'encadrant"}
-                      </span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{t('project_details.company_signature')}</span>
                    </div>
                 </div>
                 
                 <p style={{ marginBottom: '24px', fontSize: '0.95rem' }}>{t('project_details.current_status')} : <strong>{project.agreementStatus}</strong></p>
                 
-                {((user.role === 'STUDENT' && project.student?.id === user.id && project.agreementStatus === 'PENDING') || 
-                  (user.role === 'COMPANY' && project.companySupervisor?.id === user.id && project.agreementStatus === 'STUDENT_SIGNED') ||
-                  (user.role === 'SUPERVISOR' && project.academicSupervisor?.id === user.id && project.agreementStatus === 'STUDENT_SIGNED')) && (
+                {((user.role === 'STUDENT' && project.agreementStatus === 'PENDING') || 
+                  (user.role === 'COMPANY' && project.agreementStatus === 'STUDENT_SIGNED')) && (
                   <button onClick={handleSignAgreement} className="btn btn-primary btn-lg">{t('project_details.sign_digital')}</button>
                 )}
              </div>
